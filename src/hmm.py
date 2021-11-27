@@ -4,6 +4,10 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 class HiddeMarkovModel:
+  """
+  Hidden Markov Model
+
+  """
   def __init__(self):
     pass
 
@@ -18,9 +22,18 @@ class HiddeMarkovModel:
     self.__create_virtebi_solver()
 
   def __check_numerical_imput(self):
+    """
+    TODO: implement the method itself
+    Check if the inputs are non-numerical
+    
+    """
     self.__transform_numerical_imput()
 
   def __transform_numerical_imput(self):
+    """
+    Transform any non-numerical imputs into numerical using a TagNumericalMapper
+    
+    """
     self.X_transform = TagNumericalMapper()
     self.X_transform.fit( self.X_ )
     
@@ -34,12 +47,24 @@ class HiddeMarkovModel:
     self.y_map_ = self.y_transform.transform( self.y_ )
 
   def get_hidden_states(self):
+    """
+    Return unique hidden states
+    
+    """
     return self.X_transform.get_states()
 
   def get_emission_states(self):
+    """
+    Return unique emission states
+    
+    """
     return self.y_transform.get_states()
 
   def __calculate_start_probability(self):
+    """
+    Calculate each hidden states' start probabilities 
+    
+    """
     states, counts = np.unique( self.X_map_[:,0], return_counts=True )
     probabilites = counts/np.sum(counts)
 
@@ -47,6 +72,10 @@ class HiddeMarkovModel:
     self.start_state_probability_[ states ] = probabilites
 
   def __calculate_transition_probability(self):
+    """
+    Calculate the transition probabilities matrix
+    
+    """
     print("__calculate_transition_probability")
     # Creating a vector with all the pairs in the Hidden State data
     X_pairs = np.concatenate( [np.array([self.X_map_[:,i], self.X_map_[:,i+1]]) 
@@ -64,6 +93,10 @@ class HiddeMarkovModel:
     self.transition_matrix_ = np.nan_to_num(self.transition_matrix_, copy=False)
 
   def __calculate_emission_probability(self):
+    """
+    Calculate the emission probabilities matrix
+    
+    """
     print("__calculate_emission_probability")
     # Creating a vector with all the pairs (Hidden State, Emission State)
     X_y_pairs = np.vstack( [self.X_map_.flatten(), self.y_map_.flatten()] ).T
@@ -80,11 +113,19 @@ class HiddeMarkovModel:
     self.emission_matrix_ = np.nan_to_num(self.emission_matrix_, copy=False)
 
   def __create_virtebi_solver(self):
+    """
+    Instantiate a viterbi solver
+    
+    """
     self.solver = ViterbiSolver( self.transition_matrix_, 
                                  self.emission_matrix_, 
                                  self.start_state_probability_ )
     
   def predict_single(self, y_seq):
+    """
+    Solve the problem to a sequence
+    
+    """
     y_seq = self.y_transform.transform( y_seq )
     X = self.solver.solve(y_seq)
 
@@ -100,10 +141,19 @@ class HiddeMarkovModel:
     return X_r
 
 class HmmPosTag:
+  """
+  Implement a POS-TAG model with a Hidden Markov Model
+  
+  p_mask: probability of masking a emission token
+  sample_size: Number of aditional examples with masked tokens to be added
+  mask_token: text that represents a masked token
+  random_state: random state to reproducibility
+  """
   def __init__( self, p_mask=0.15, sample_size=0.25, mask_token="<MASKED>", random_state=None ):
     self.p_mask = p_mask
     self.sample_size = sample_size
     self.random_state = random_state
+    np.random.seed(random_state)
 
     self.mask_token = mask_token
 
@@ -120,10 +170,16 @@ class HmmPosTag:
     self.__create_vocabulary()
   
   def __create_vocabulary(self):
+    """
+    Create model's vocabulary (unique emission states set)
+    """
     self.vocabulary_ = set( self.hmm_model.get_emission_states() )
 
   def __mask_train_tokens(self):
-
+    """
+    Samples a set of sample_size entries to mask its emission tokens using p_mask. 
+    The set is appended to the training set
+    """
     _, self.X_sample_, _, self.y_sample_ = train_test_split(self.X_, self.y_, 
                                                             test_size=self.sample_size, 
                                                             random_state=self.random_state 
@@ -141,6 +197,10 @@ class HmmPosTag:
    return self.hmm_model.predict( y )
 
   def handle_missing_tokens(self, y):
+    """
+    Mask out-of-vocabulary tokens with mask_token
+    
+    """
     f = np.vectorize( lambda s: s not in self.vocabulary_ )
     y[ f(y) ] = self.mask_token
     return y

@@ -1,11 +1,24 @@
 import numpy as np
 class ViterbiSolver:
+  """
+  Virtebi algorithm implementation
+
+  tran: Transmission probabilities matrix S x S
+  emiss: Emission probabilities matrix S x E
+  start: Initial states probabilites S x 1
+  eps: Smoothing value to avoid log(0)
+  """
   def __init__(self, tran, emiss, start, eps=1e-12):
     self.tran = np.log( tran+eps)
     self.emiss = np.log( emiss+eps )
     self.start = np.log( start+eps )
 
   def solve(self, seq):
+    """
+    Solve the probability optimization problem to a given sequence
+
+    seq: the emission's sequence 
+    """
     seq_len = len(seq)
     num_states = self.tran.shape[0]
 
